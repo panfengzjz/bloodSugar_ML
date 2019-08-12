@@ -1,68 +1,83 @@
 #coding:utf-8
 
-from sklearn.decomposition import PCA
+from sklearn import tree
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+#from sklearn.metrics import precision_recall_curve
+#from sklearn.metrics import classification_report
 import numpy as np
 import pandas as pd
 
-data = pd.read_excel("test.xlsx")
-resMat = data.pop('【瓜】有无病')
-data.pop('姓名')
-pca = PCA(n_components=4)
+def perf_measure(y_actual, list_predict):
+    TP = 0
+    FP = 0
+    TN = 0
+    FN = 0
 
-pca.fit(data)
-print(pca.explained_variance_ratio_)
-print("hello")
+    for i in range(len(list_predict)): 
+        if y_actual[i]==list_predict[i]==1:
+            TP += 1
+        if list_predict[i]==1 and y_actual[i]==0:
+            FP += 1
+        if y_actual[i]==list_predict[i]==0:
+            TN += 1
+        if list_predict[i]==0 and y_actual[i]==0:
+            FN += 1
 
-#from sklearn import tree
-#from sklearn.preprocessing import LabelEncoder
-#import numpy as np
-#import pandas as pd
-#import os
-#os.environ["PATH"] += os.pathsep + 'D:\program file\Graphviz2.38\bin'
+    return (TP, FP, TN, FN)
 
-#attr_arr=[['slashdot','USA','yes',18,'None'],
-         #['google','France','yes',23,'Premium'],
-         #['digg','USA','yes',24,'Basic'],
-         #['kiwitobes','France','yes',23,'Basic'],
-         #['google','UK','no',21,'Premium'],
-         #['(direct)','New Zealand','no',12,'None'],
-         #['(direct)','UK','no',21,'Basic'],
-         #['google','USA','no',24,'Premium'],
-         #['slashdot','France','yes',19,'None'],
-         #['digg','USA','no',18,'None'],
-         #['google','UK','no',18,'None'],
-         #['kiwitobes','UK','no',19,'None'],
-         #['digg','New Zealand','yes',12,'Basic'],
-         #['slashdot','UK','no',21,'None'],
-         #['google','UK','yes',18,'Basic'],
-         #['kiwitobes','France','yes',19,'Basic']]
+def main():
+    data = pd.read_excel("test.xlsx")
+    resMat = data.pop('【瓜】有无病C11')
+    data.pop('姓名')
+    data.pop('住院号')
+    data.pop('数据库编号')
+    x_train, x_test, y_train, y_test = train_test_split(data, resMat, test_size=0.3)
+    #param = {'criterion':['gini'],'max_depth':[30,50,60,100],'min_samples_leaf':[2,3,5,10],'min_impurity_decrease':[0.1,0.2,0.5]}
+    #grid = GridSearchCV(DecisionTreeClassifier(), param_grid=param, cv=6)
+    #grid.fit(x_train, y_train)
+    #print("最优分类器: ", grid.best_params_, "最优分数: ", grid.best_score_)
 
-#dataMat = np.mat(attr_arr)
-#arrMat  = dataMat[:, 0:4]   #属性数据值
-#resMat  = dataMat[:, 4]     #属性结果值
-#attr_names = ['src', 'address', 'FAQ', 'num']   #属性名称
-#attr_pd = pd.DataFrame(data=arrMat, columns=attr_names)
-#print(attr_pd)
+    clf = DecisionTreeClassifier(criterion="entropy", max_depth=10)
+    clf.fit(x_train, y_train)
+    with open("tree.dot", 'w') as f:
+        f = tree.export_graphviz(clf, out_file=f)
 
-#le = LabelEncoder()
-#for col in attr_pd.columns:
-    #attr_pd[col] = le.fit_transform(attr_pd[col])   #为每一列序列化,就是将每种字符串转化为对应的数字。用数字代表类别
-##print(attr_pd)
+    from sklearn.externals.six import StringIO
+    import pydotplus
+    
+    dot_data = StringIO()
+    attr_names = data.columns
+    target_name = attr_names
+    tree.export_graphviz(clf, out_file=dot_data,feature_names=attr_names,
+                         class_names=target_name,filled=True,rounded=True,
+                         special_characters=True)
+    graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+    graph.write_png('tree.png')    
+    
+    #''''' 系数反映每个特征的影响力。越大表示该特征在分类中起到的作用越大 '''
+    #print(clf.feature_importances_)
+    
+    #'''''测试结果的打印'''  
+    #answer = clf.predict(x_test)
+    #TP, FP, TN, FN = perf_measure(list(y_test), list(answer))
+    #print("TP:%d\tFP:%d\tTN:%d\tFN:%d" %(TP, FP, TN, FN))
+    #accuracy = (TP+TN) / (TP+TN+FP+FN)
+    #precision = TP / (TP+FP)
+    #recall = TP / (TP+FN)
+    #specificity = TN / (TN+FP)
+    #print("specificity: %f" %specificity)
+    #print("recall: %f" %recall)
+    #print()
 
-#clf = tree.DecisionTreeClassifier()
-#clf.fit(attr_pd, resMat)
+    
+    #"""准确率和召回率"""
+    #precision, recall, thresholds = precision_recall_curve(y_test, clf.predict(x_test))
+    #answer = clf.predict_proba(data)[:,1]
+    #print(classification_report(resMat, answer, target_names=['yes', 'no']))
 
-#result = clf.predict([[1,1,1,0]])
-#print(result)
-
-#from sklearn.externals.six import StringIO
-#import pydotplus
-
-#dot_data = StringIO()
-#target_name=['None','Basic','Premium']
-#tree.export_graphviz(clf, out_file=dot_data,feature_names=attr_names,
-                     #class_names=target_name,filled=True,rounded=True,
-                     #special_characters=True)
-#graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
-#graph.write_png('D:/tree.png')
-
+if __name__ == "__main__":
+    for i in range(10):
+        main()
+    #print("hello")
