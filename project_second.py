@@ -20,7 +20,7 @@ def perf_measure(y_actual, list_predict):
             FP += 1
         if y_actual[i]==list_predict[i]==0:
             TN += 1
-        if list_predict[i]==0 and y_actual[i]==0:
+        if list_predict[i]==0 and y_actual[i]==1:
             FN += 1
 
     return (TP, FP, TN, FN)
@@ -62,8 +62,7 @@ def get_best_tree_module(x_train, y_train):
 
     param = {'criterion':['gini', 'entropy'],
              'max_depth':[5, 10, 20, 30, 50],
-             'min_samples_leaf':[1,2,3,5],
-             'min_impurity_decrease':[0.05, 0.1, 0.2, 0.3, 0.5]}
+             'min_samples_leaf':[1,2,3,5]}
     
     grid = GridSearchCV(DecisionTreeClassifier(), param_grid=param, cv=6)
     grid.fit(x_train, y_train)
@@ -88,7 +87,12 @@ def main():
     #data_train, data_test, res_train, res_test = train_test_split(data, resMat, test_size=0.2)
     for i in range(10):
         data_train, data_test, res_train, res_test = train_test_split(data, resMat, test_size=0.2)
-        get_best_tree_module(data_train, res_train)
+        #get_best_tree_module(data_train, res_train)
+        clf = DecisionTreeClassifier(criterion='entropy',
+                                     max_depth=5,
+                                     min_samples_leaf=2)
+        clf.fit(data_train, res_train)
+        print_measure_result(clf, data_test, res_test)
 
 
 if __name__ == "__main__":
